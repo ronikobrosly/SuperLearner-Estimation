@@ -3,6 +3,7 @@
 get.coeffs <- function(dataset, outcome, reps=1000, MC=1)
 {
 
+# Required libraries
 require(SuperLearner)
 require(plyr)
 require(foreach)
@@ -13,7 +14,7 @@ require(earth)
 require(randomForest)
 require(nnet)
 
-
+# Generate lists of predictor names, outcome names
 num.predictors <- ncol(subset(get(dataset),select = -c(get(outcome))))
 outcome.name <- colnames(subset(get(dataset),select = c(get(outcome))))
 predictor.names <- colnames(subset(get(dataset),select = -c(get(outcome))))
@@ -22,8 +23,10 @@ predictor.names2 <- colnames(subset(get(dataset),select = -c(get(outcome))))
 x <- 1:(num.predictors*3)
 dim(x) <- c(num.predictors,3)
 
+# Select the individual predictive models to be used in the ensemble
 SL.library <- c ("SL.gam", "SL.mean", "SL.randomForest","SL.nnet", "SL.bayesglm", "SL.earth", "SL.stepAIC")
 
+# Fit the SuperLearner model
 fit1 <- SuperLearner(
 Y = get(dataset)[,outcome.name],
 X = get(dataset)[,predictor.names],
@@ -33,13 +36,12 @@ verbose = F,
 cvControl = SuperLearner.CV.control(V = 10, stratifyCV = F, shuffle = T, validRows = NULL)
 )
  
- 
+# Conduct the initial effect estimation (this should only take a few seconds)
 for (i in (1:num.predictors))
 {
 predictor.names2[i] -> x[i,1]
 }
 
- 
 for (i in (1:num.predictors))
 {
  
@@ -57,9 +59,7 @@ print("", quote=F)
 print("Initial effect estimation complete!", quote=F)
 flush.console()
 
-
-
-
+# Loop the above process 'reps' times, to find the bootstrap confidence bounds
 print("", quote=F);
 print("Generating CI's", quote=F)
 print("", quote=F)
@@ -68,7 +68,6 @@ flush.console()
 registerDoMC(MC)
 CIs <- foreach(j=1:reps, .combine=rbind) %dopar% 
 {
-
 
 haha1 <- 1:num.predictors
 
@@ -81,7 +80,6 @@ SL.library = SL.library,
 family = gaussian(),
 verbose = F,
 cvControl = SuperLearner.CV.control(V = 10, stratifyCV = F, shuffle = T, validRows = NULL))
-
 
 haha2 <- foreach (i=1:num.predictors, .combine=cbind) %do% 
 {
@@ -97,7 +95,6 @@ return(mean(Q.diff))
 
 return(haha2)
 }
-
 
 for (i in (1:num.predictors))
 {
@@ -117,6 +114,7 @@ paste("(", lower2, ",", " ", upper2,")", sep = ""  ) -> x[i,3]
 
 }
 
+# Generate the final dataframe with predictor names, effect estimates, and the 95% CIs
 colnames(x) <- c("Predictor", "Effect Estimate", "95% CI")
 return(x)
 
