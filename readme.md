@@ -24,4 +24,4 @@ MC = the number of cores to be used in analysis. Default is 1.
 
 Function calls look like this:
 
-get.coeffs("simdata","Y",1000,10)
+get.coeffs("dataset","Y",1000,10)
